@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1052055371653",
+    "firebase_url": "https://rise-up-strays-beta.firebaseio.com",
+    "project_id": "rise-up-strays-beta",
+    "storage_bucket": "rise-up-strays-beta.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052055371653:android:eac908828652d5c4",
+        "android_client_info": {
+          "package_name": "com.abhidip.strays.riseupsrays"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1052055371653-61b9qlg3ghtrt2dl1dm90dd54mjm4k3h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abhidip.strays.riseupsrays",
+            "certificate_hash": "3618e2fdc6b26c6c89f7009fc79c6d1cb8b61258"
+          }
+        },
+        {
+          "client_id": "1052055371653-o3fje8dkdkv94rkv6oa4maehn2a6p0ie.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBngHA9cKOuC7vxsjdcLuhU-8hA1MrczAg"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1052055371653-o3fje8dkdkv94rkv6oa4maehn2a6p0ie.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
