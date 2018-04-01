@@ -1,8 +1,17 @@
 package com.abhidip.strays.riseupsrays;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.databinding.DataBindingUtil;
+import android.location.Location;
+import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -17,6 +26,8 @@ import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 
+import com.abhidip.strays.riseupsrays.databinding.ActivitySignUpBinding;
+import com.abhidip.strays.util.GPSUtil;
 import com.abhidip.strays.model.UserDetails;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -29,26 +40,34 @@ import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.FirebaseTooManyRequestsException;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class SignUpActivity extends AppCompatActivity {
 
     private static final String TAG = "PhoneAuthActivity";
 
-
     private PhoneAuthProvider.ForceResendingToken mResendToken;
     private PhoneAuthProvider.OnVerificationStateChangedCallbacks mCallbacks;
-    private boolean mVerificationInProgress = false;
     private String mVerificationId;
     private FirebaseUser currentUser;
     private UserDetails userDetails;
 
+    // Util Class for GPS
+    private GPSUtil gpsUtil;
     // [START declare_auth]
     private FirebaseAuth mAuth;
     // [END declare_auth]
-
     private PhoneAuthProvider mPhoneAuthProvider;
 
+    // Firebase real time database
+    FirebaseDatabase database;
+    DatabaseReference reference;
+
+
     private String mobileNumber;
+
+    Toolbar toolbar;
 
     // UI widgets
     Button signUpButton;
@@ -65,26 +84,76 @@ public class SignUpActivity extends AppCompatActivity {
     Button resendOtp;
     ViewFlipper flipper;
     TextView statusText;
+    private int count = 0;
+
+    // Flag Variables
+    private boolean generateUserId = false;
+    private boolean generateLatLong = false;
+    private boolean mVerificationInProgress = false;
+    private ActivitySignUpBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_sign_up);
+        setContentView(R.layout.sign_up_activity);
+       // binding = DataBindingUtil.setContentView(this, R.layout.sign_up_activity);
+
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setTitle("Rise Up...Strays");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            toolbar.setElevation(10f);
+        }
+
         // bind all the views
+        //bindUiViews();
         setUpUiViews();
         userDetails = new UserDetails();
         // [START initialize_auth]
         mAuth = FirebaseAuth.getInstance();
         // [END initialize_auth]
         mPhoneAuthProvider = PhoneAuthProvider.getInstance();
+
+        database = FirebaseDatabase.getInstance();
+        reference = database.getReference("Users");
+
+        if (ContextCompat.checkSelfPermission(SignUpActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Permission is not
+            ActivityCompat.requestPermissions(SignUpActivity.this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 123);
+        }
+
+        gpsUtil = new GPSUtil(getApplicationContext());
         // By default, the next button will be deactivated
         nextButton.setEnabled(false);
+    }
+
+
+    private void bindUiViews (){
+        fullName = binding.fullName;
+        fullName.addTextChangedListener(fullNameTextWatcher);
+        email = binding.userEmailId;
+        email.addTextChangedListener(emailTextWatcher);
+        password = binding.password;
+        mobile = binding.mobileNumber;
+        mobile.addTextChangedListener(mobileTextWatcher);
+        otp = binding.otp;
+        otp.addTextChangedListener(otpTextWatcher);
+        aadhar = binding.aadhar;
+        aadhar.addTextChangedListener(aadharTextWatcher);
+        nextButton = binding.nextButton;
+        nextButton.setOnClickListener(nextButtonListener);
+        verifyOtp = binding.verifyOtp;
+        verifyOtp.setEnabled(false);
+        resendOtp = binding.resendOtp;
+        resendOtp.setEnabled(false);
+        statusText = binding.statusText;
+        flipper =  (ViewFlipper) findViewById(R.id.view_flipper);
     }
 
     // Binds all the ui elements.
     private void setUpUiViews ()
     {
-        signUpButton = (Button) findViewById(R.id.signUpBtn);
+       // signUpButton = (Button) findViewById(R.id.signUpBtn);
         fullName = (EditText) findViewById(R.id.fullName);
         fullName.addTextChangedListener(fullNameTextWatcher);
         email = (EditText) findViewById(R.id.userEmailId);
@@ -117,7 +186,7 @@ public class SignUpActivity extends AppCompatActivity {
             if( !TextUtils.isEmpty(fullName.getText().toString()) && s.length()>=3)
             {
                 nextButton.setEnabled(true);
-                userDetails.setName(fullName.toString());
+                userDetails.setName(fullName.getText().toString());
             }
             else
                 nextButton.setEnabled(false);
@@ -134,8 +203,10 @@ public class SignUpActivity extends AppCompatActivity {
         public void onTextChanged(CharSequence s, int start, int before, int count) {
             if  (!TextUtils.isEmpty(s) && Patterns.EMAIL_ADDRESS.matcher(s).matches())
             {
+                userDetails.setEmail(email.getText().toString());
                 nextButton.setEnabled(true);
-                userDetails.setName(fullName.toString());
+                //  flag set to True
+                generateLatLong = true;
             }
             else
                 nextButton.setEnabled(false);
@@ -152,8 +223,10 @@ public class SignUpActivity extends AppCompatActivity {
         public void onTextChanged(CharSequence s, int start, int before, int count) {
             if  (!TextUtils.isEmpty(s) && s.length() == 16)
             {
-                nextButton.setEnabled(true);
                 userDetails.setAadhar(aadhar.toString());
+                nextButton.setEnabled(true);
+                // Flag set to true, now clicking on next button will generate the userId
+                generateUserId = true;
             }
             else
                 nextButton.setEnabled(false);
@@ -170,8 +243,8 @@ public class SignUpActivity extends AppCompatActivity {
         public void onTextChanged(CharSequence s, int start, int before, int count) {
             if  (!TextUtils.isEmpty(s) && s.length() == 10)
             {
-                nextButton.setEnabled(true);
                 userDetails.setMobile(mobile.toString());
+                nextButton.setEnabled(true);
             }
             else
                 nextButton.setEnabled(false);
@@ -202,14 +275,36 @@ public class SignUpActivity extends AppCompatActivity {
                 flipper.showNext();
                 nextButton.setEnabled(false);
             }
-            if( !TextUtils.isEmpty(mobile.getText().toString()))
+            // OTP Sending
+            if( !TextUtils.isEmpty(mobile.getText().toString()) && count == 0)
             {
                 Toast toast=Toast.makeText(getApplicationContext(),"Sending OTP To your number", Toast.LENGTH_SHORT);
                 toast.setMargin(50,50);
                 toast.show();
 
                 startPhoneNumberVerification(mobile.getText().toString());
+                count ++;
             }
+            // Create the user id
+            if (generateUserId) {
+                generateUserName();
+                generateUserId = false;
+            }
+
+            if (generateLatLong) {
+                Location location = gpsUtil.getLocation();
+                if (location != null) {
+                    userDetails.setLatitude(location.getLatitude());
+                    userDetails.setLongitude(location.getLongitude());
+                    Toast.makeText(getApplicationContext(), "LAT : "+userDetails.getLatitude()+" \n LON: "+ userDetails.getLongitude(), Toast.LENGTH_SHORT).show();
+                }
+
+                generateLatLong = false;
+
+                //below code snippet for testing, should be deleted later
+                reference.push().setValue(userDetails);
+            }
+
         }
     };
 
@@ -218,6 +313,12 @@ public class SignUpActivity extends AppCompatActivity {
         super.onStart();
         // Check if user is signed in (non-null) and update UI accordingly.
         currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            String uid = mAuth.getCurrentUser().getUid();
+
+        //    Intent authIntent = new Intent(SignUpActivity.this, HomeActivity.class);
+          //  startActivity(authIntent);
+        }
     }
 
     private void startPhoneNumberVerification(String phoneNumber) {
@@ -253,6 +354,7 @@ public class SignUpActivity extends AppCompatActivity {
                 resendOtp.setEnabled(false);
                // nextButton.setEnabled(true);
                // FirebaseAuth.getInstance().signOut();
+                signInWithPhoneAuthCredential(credential);
             }
 
             @Override
@@ -336,5 +438,12 @@ public class SignUpActivity extends AppCompatActivity {
                 this,               // Activity (for callback binding)
                 mCallbacks,         // OnVerificationStateChangedCallbacks
                 mResendToken);
+    }
+
+    // Generate User id ( 1st 3 letters of full name + last 4 digits of aadhar)
+    private void generateUserName(){
+        String aadharNumber =  aadhar.getText().toString();
+        String name = fullName.getText().toString();
+        userDetails.setUserName(name.substring(0, 3)  + aadharNumber.substring( aadharNumber.length() - 4, aadharNumber.length()));
     }
 }

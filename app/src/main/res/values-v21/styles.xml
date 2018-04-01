@@ -1,0 +1,12 @@
+<resources>
+
+    <!-- Theme for only lollopop and above versions -->
+    <style name="MaterialTheme" parent="ParentMaterialTheme" >
+
+    </style>
+
+    <style name="ToolbarTheme" parent="ThemeOverlay.AppCompat.Light" >
+        <item name="android:textColorPrimary">@android:color/white</item>
+    </style>
+
+</resources>

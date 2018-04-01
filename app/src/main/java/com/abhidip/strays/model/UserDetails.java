@@ -3,7 +3,6 @@ package com.abhidip.strays.model;
 /**
  * Created by abhidip on 3/13/2018.
  */
-
 public class UserDetails {
 
     private String name;
@@ -17,7 +16,6 @@ public class UserDetails {
     private String location;
     private Double latitude;
     private Double longitude;
-
 
     public String getUid() {
         return uid;

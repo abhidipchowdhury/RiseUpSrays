@@ -1,4 +1,4 @@
-package com.abhidip.strays.com.abhidip.strays.util;
+package com.abhidip.strays.util;
 
 /**
  * Created by admin on 3/13/2018.
