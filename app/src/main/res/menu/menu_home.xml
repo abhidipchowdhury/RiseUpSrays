@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item android:id="@+id/post"
+        android:title="Post"
+        android:icon="@drawable/ic_add_black_24dp"
+        android:onClick="openNewActivity"
+        app:showAsAction="always"/>
+
+    <item android:id="@+id/about"
+        android:title="About This App"
+        app:showAsAction="never"/>
+
+    <item android:id="@+id/faq"
+        android:title="FAQ"
+        app:showAsAction="never"/>
+
+    <item android:id="@+id/adoption"
+        android:title="Adopt A Stray"
+        app:showAsAction="never"/>
+
+    <item android:id="@+id/help"
+        android:title="Help"
+        app:showAsAction="never"/>
+
+</menu>

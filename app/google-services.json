@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1052055371653-8h3hh59it41al06qjgv24h0aj1mi8ht8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abhidip.strays.riseupsrays",
+            "certificate_hash": "02971e63ebf3c150d6847f7d6a6d9a5a5c2be985"
+          }
+        },
+        {
           "client_id": "1052055371653-61b9qlg3ghtrt2dl1dm90dd54mjm4k3h.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
