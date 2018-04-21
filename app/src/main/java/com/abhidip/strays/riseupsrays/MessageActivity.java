@@ -1,8 +1,11 @@
 package com.abhidip.strays.riseupsrays;
 
+import android.*;
+import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -11,9 +14,13 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.EditText;
@@ -41,12 +48,15 @@ public class MessageActivity extends AppCompatActivity {
 
     private static final int PICK_IMAGE_REQUEST = 234;
     private static final int REQUEST_IMAGE_CAPTURE = 1;
+    public static final int MY_PERMISSIONS_REQUEST_CAMERA = 100;
+    public final String APP_TAG = "RiseUpStrays";
     Toolbar messageActivityToolbar;
 
     private ImageView sendIcon, photoContent, cameraIcon, galleryIcon;
     private EditText textContent;
     private StorageReference mStorageRef;
     private Uri uri;
+    private Bitmap bitmap;
     private int count = 0;
 
     // Firebase real time database
@@ -101,21 +111,26 @@ public class MessageActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        String filePath = "sdcard/rise-up-strays/" + System.currentTimeMillis()+".jpg";
+
+        // If user selects a photo from gallery.
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             uri = data.getData();
-
             try {
-                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), data.getData());
+                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), data.getData());
                 photoContent.setImageBitmap(bitmap);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            photoContent.setImageDrawable(Drawable.createFromPath(filePath));
+        // If the user has taken a new snap using the camera.
+        else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK ) {
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            File f = new File(mCurrentPhotoPath);
+            uri = Uri.fromFile(f);
+            photoContent.setImageURI(uri);
+            mediaScanIntent.setData(uri);
+            this.sendBroadcast(mediaScanIntent);
         }
     }
 
@@ -138,32 +153,90 @@ public class MessageActivity extends AppCompatActivity {
 
     private View.OnClickListener cameraIconListener = new View.OnClickListener() {
         public void onClick(View v) {
-            Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            //File file = getFile();
-            if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-                File photoFile = null;
-                try {
-                    photoFile = createImageFile();
-                } catch (IOException ex) {
-
-                }
-                if (photoFile!= null) {
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile));
-                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            if (Build.VERSION.SDK_INT >= 23) {
+                if (ContextCompat.checkSelfPermission(MessageActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // Permission is not
+                    ActivityCompat.requestPermissions(MessageActivity.this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 123);
                 }
             }
+            requestPermission();
         }
     };
 
+    void requestPermission() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_CAMERA);
+                return;
+            }
+        }
+        takePicture();
+    }
 
-    private File getFile() {
-        File folder = new File("sdcard/rise-up-strays");
+    void takePicture() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File photoFile = null;
+
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,"com.abhidip.strays.riseupsrays", photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            }
+            //takePictureIntent.putExtra("return-data", true);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_CAMERA: {
+                Log.i("Camera", "G : " + grantResults[0]);
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    takePicture();
+                } else {
+                    Toast.makeText(MessageActivity.this, "Storage Permission not granted..", Toast.LENGTH_SHORT).show();
+                }
+                return;
+            }
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+
+    private Uri getFileUri() {
+      /*  File folder = new File("sdcard/rise-up-strays");
         if (!folder.exists()) {
             folder.mkdir();
         }
 
         File image = new File(folder, System.currentTimeMillis()+".jpg");
-        return image;
+        return image;*/
+
+        File f = new File(Environment.getExternalStorageDirectory(), System.currentTimeMillis()+".jpg");
+        Uri outputFileUri = Uri.fromFile( f );
+        return outputFileUri;
     }
 
     private View.OnClickListener sendIconListener = new View.OnClickListener() {
@@ -217,25 +290,10 @@ public class MessageActivity extends AppCompatActivity {
                          });
 
             }
+            else
+                Toast.makeText(getApplicationContext(), "Select an image...", Toast.LENGTH_LONG);
 
         }
     };
-
-
-    private File createImageFile() throws IOException {
-        // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
-                storageDir      /* directory */
-        );
-
-        // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = image.getAbsolutePath();
-        return image;
-    }
 
 }
