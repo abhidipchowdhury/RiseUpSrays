@@ -10,6 +10,9 @@ public class ChatMessage {
     private String userId;
     private String Description;
     private String photoUrl;
+    private Double latitude;
+    private Double longitude;
+
 
     public int getId() {
         return id;
@@ -42,4 +45,21 @@ public class ChatMessage {
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
     }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
 }

@@ -24,4 +24,5 @@
     <string name="submit">SUBMIT</string>
     <string name="back">BACK</string>
     <string name="thumbnail">ThumbNail</string>
+    <string name="map_api_key">AIzaSyC7DA3n3BbXuUOerptii3CEvVfInTugs90</string>
 </resources>

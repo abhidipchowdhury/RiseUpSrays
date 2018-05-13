@@ -1,8 +1,9 @@
 package com.abhidip.strays.riseupsrays;
 
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
+import android.media.Image;
 import android.os.Build;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -10,6 +11,8 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageView;
 
 import com.abhidip.strays.model.ChatMessage;
 import com.abhidip.strays.util.RecyclerAdapter;
@@ -27,9 +30,15 @@ public class HomeActivity extends AppCompatActivity {
     private Toolbar toolbar1;
     private RecyclerView recylerView;
     private RecyclerAdapter adapter;
+    private ImageView commentIcon;
+    private ImageView attendIcon;
 
     private DatabaseReference reference;
     private List<ChatMessage> messageList;
+    private FloatingActionButton fab;
+    public static final String LATITUDE = "lattitude";
+    public static final String LONGITUDE = "longitude";
+
 
 
     @Override
@@ -50,18 +59,35 @@ public class HomeActivity extends AppCompatActivity {
         recylerView.setHasFixedSize(true);
         recylerView.setLayoutManager(new LinearLayoutManager(this));
 
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+
+       // commentIcon = (ImageView) findViewById(R.id.commentIcon);
+       // attendIcon = (ImageView) findViewById(R.id.attendIcon);
+
         messageList = new ArrayList<>();
         reference = FirebaseDatabase.getInstance().getReference("Messages");
 
         reference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                adapter = new RecyclerAdapter(HomeActivity.this, messageList);
+                recylerView.setAdapter(adapter);
+
+                adapter.setOnItemClickListener(new RecyclerAdapter.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(int position) {
+                        Intent myIntent = new Intent(HomeActivity.this,MapsActivity.class);
+                        ChatMessage chatMessage = messageList.get(position);
+
+                        myIntent.putExtra(LATITUDE, chatMessage.getLatitude());
+                        myIntent.putExtra(LONGITUDE, chatMessage.getLongitude());
+                        startActivity(myIntent);
+                    }
+                });
 
                 for (DataSnapshot postDataSnapShot : dataSnapshot.getChildren()) {
                     messageList.add(postDataSnapShot.getValue(ChatMessage.class));
                 }
-             adapter = new RecyclerAdapter(HomeActivity.this, messageList);
-                recylerView.setAdapter(adapter);
             }
 
             @Override
@@ -69,6 +95,26 @@ public class HomeActivity extends AppCompatActivity {
 
             }
         });
+
+
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // Click action
+                Intent myIntent = new Intent(HomeActivity.this,MessageActivity.class);
+                startActivity(myIntent);
+            }
+        });
+
+        /*commentIcon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent myIntent = new Intent(HomeActivity.this,
+                        CommentsActivity.class);
+                startActivity(myIntent);
+            }
+        });*/
+
 
     }
 
@@ -84,4 +130,5 @@ public class HomeActivity extends AppCompatActivity {
                 MessageActivity.class);
         startActivity(myIntent);
     }
+
 }

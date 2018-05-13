@@ -31,9 +31,6 @@ public class GPSUtil implements LocationListener{
         LocationManager locationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
         boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if (isGPSEnabled) {
-            /*locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 6000, 10, this);
-            Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            return location;*/
 
             List<String> providers = locationManager.getProviders(true);
             Location bestLocation = null;

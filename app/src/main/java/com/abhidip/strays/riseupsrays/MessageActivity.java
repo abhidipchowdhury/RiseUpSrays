@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -28,6 +29,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.abhidip.strays.model.ChatMessage;
+import com.abhidip.strays.util.GPSUtil;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -58,6 +60,9 @@ public class MessageActivity extends AppCompatActivity {
     private Uri uri;
     private Bitmap bitmap;
     private int count = 0;
+
+    // Util Class for GPS
+    private GPSUtil gpsUtil;
 
     // Firebase real time database
     private FirebaseDatabase database;
@@ -95,6 +100,8 @@ public class MessageActivity extends AppCompatActivity {
         galleryIcon.setOnClickListener(galleryIconListener);
         sendIcon.setOnClickListener(sendIconListener);
         count ++;
+        gpsUtil = new GPSUtil(getApplicationContext());
+
     }
 
     /**
@@ -169,6 +176,11 @@ public class MessageActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_CAMERA);
                 return;
             }
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // Permission is not
+                ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 123);
+            }
         }
         takePicture();
     }
@@ -225,20 +237,6 @@ public class MessageActivity extends AppCompatActivity {
     }
 
 
-    private Uri getFileUri() {
-      /*  File folder = new File("sdcard/rise-up-strays");
-        if (!folder.exists()) {
-            folder.mkdir();
-        }
-
-        File image = new File(folder, System.currentTimeMillis()+".jpg");
-        return image;*/
-
-        File f = new File(Environment.getExternalStorageDirectory(), System.currentTimeMillis()+".jpg");
-        Uri outputFileUri = Uri.fromFile( f );
-        return outputFileUri;
-    }
-
     private View.OnClickListener sendIconListener = new View.OnClickListener() {
         public void onClick(View v) {
             if (uri != null) {
@@ -252,6 +250,13 @@ public class MessageActivity extends AppCompatActivity {
                     public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                         // Get a URL to the uploaded content
                         Uri downloadUrl = taskSnapshot.getDownloadUrl();
+
+                        Location location = gpsUtil.getLocation();
+                        if (location != null) {
+                            chatMessage.setLatitude(location.getLatitude());
+                            chatMessage.setLongitude(location.getLongitude());
+                        }
+
                         chatMessage.setPhotoUrl(downloadUrl.toString());
                         chatMessage.setDescription(textContent.getText().toString());
 
